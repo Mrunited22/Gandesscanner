@@ -43,6 +43,9 @@ android {
 }
 
 dependencies {
+    // ★ FIX MIUI — theme compatible Xiaomi/Poco
+    implementation("com.google.android.material:material:1.12.0")
+
     // Core Android
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
@@ -59,8 +62,9 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.4")
 
-    // ML Kit Document Scanner — mesin utama auto-crop
+    // ML Kit Document Scanner — mesin auto-crop
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
 
+    // Debug tools
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
