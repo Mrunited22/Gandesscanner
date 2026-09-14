@@ -11,7 +11,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -45,6 +44,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -64,9 +64,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -294,26 +297,31 @@ fun ScannerScreen(
             return
         }
 
-        val options = GmsDocumentScannerOptions.Builder()
-            .setGalleryImportAllowed(true)
-            .setPageLimit(50)
-            .setResultFormats(
-                GmsDocumentScannerOptions.RESULT_FORMAT_JPEG,
-                GmsDocumentScannerOptions.RESULT_FORMAT_PDF
-            )
-            .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
-            .build()
+        try {
+            val options = GmsDocumentScannerOptions.Builder()
+                .setGalleryImportAllowed(true)
+                .setPageLimit(50)
+                .setResultFormats(
+                    GmsDocumentScannerOptions.RESULT_FORMAT_JPEG,
+                    GmsDocumentScannerOptions.RESULT_FORMAT_PDF
+                )
+                .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+                .build()
 
-        GmsDocumentScanning.getClient(options)
-            .getStartScanIntent(activity)
-            .addOnSuccessListener { intentSender ->
-                launcher.launch(IntentSenderRequest.Builder(intentSender).build())
-                loading = false
-            }
-            .addOnFailureListener { e ->
-                error = "Gagal buka scanner: ${e.message}"
-                loading = false
-            }
+            GmsDocumentScanning.getClient(options)
+                .getStartScanIntent(activity)
+                .addOnSuccessListener { intentSender ->
+                    launcher.launch(IntentSenderRequest.Builder(intentSender).build())
+                    loading = false
+                }
+                .addOnFailureListener { e ->
+                    error = "Gagal buka scanner: ${e.message}"
+                    loading = false
+                }
+        } catch (e: Exception) {
+            error = "Error: ${e.message}"
+            loading = false
+        }
     }
 
     LaunchedEffect(autoStart) { if (autoStart) startScan() }
@@ -438,6 +446,7 @@ fun GandesApp() {
     val documents = remember { mutableStateListOf<ScannedDocument>() }
 
     Scaffold(
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets, // ← FIX MIUI
         topBar = {
             TopAppBar(
                 title = { Text("Gandes Scanner", fontWeight = FontWeight.Bold) },
@@ -480,10 +489,14 @@ fun GandesApp() {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            GandesTheme(darkTheme = true) {
-                GandesApp()
+
+        // FIX MIUI: delay sebelum setContent biar gak crash di Xiaomi
+        lifecycleScope.launch {
+            delay(300)
+            setContent {
+                GandesTheme(darkTheme = true) {
+                    GandesApp()
+                }
             }
         }
     }
